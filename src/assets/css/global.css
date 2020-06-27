@@ -1,5 +1,30 @@
-html,body,#app{
+/*全局css样式*/
+html,
+body,
+#app{
     height: 100%;
     margin:0;
     padding:0;
-           }
+}
+
+/*面包屑全局样式*/
+.el-breadcrumb{
+    /*占用宽度*/
+    margin-bottom: 20px;
+    font-size: 17px;
+}
+
+/* 卡片全局样式*/
+.el-card{
+    /*卡片阴影参数配置*/
+    /*!important 表示覆盖本身样式，最高优先级*/
+    box-shadow: 0 1px 1px rgba(0,0,0,0.15) !important;
+}
+/* 表格的头部多少px*/
+.el-table {
+    margin-top: 15px;
+}
+/* 表格下面的分页头部大小ß*/
+.el-pagination{
+    margin-top: 15px;
+}
