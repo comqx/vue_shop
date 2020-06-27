@@ -8,6 +8,7 @@
 <!--      登录表单区-->
 <!--      :model 数据绑定-->
 <!--      ref 引用-->
+<!--      :rules 校验规则绑定-->
       <el-form  ref="loginFormRef" :model="loginForm"  :rules="loginFormRules" label-width="0px" class="login_form">
 <!--        用户名-->
         <el-form-item prop="username">
@@ -93,7 +94,7 @@ export default {
         //  1.2 token只应在当前网页打开期间生效，所以讲token保存在sessionStorage中
         window.sessionStorage.setItem('token', res.data.token) // 保存token,到session storage
         // 2. 通过编程式导航挑战到后台主页，路由地址是 /home
-        this.$route.push('/home')
+        this.$router.push('/home')
       })
     }
   }
