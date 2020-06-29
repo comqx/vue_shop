@@ -17,6 +17,7 @@ import {
   BreadcrumbItem,
   Card,
   Select,
+  Option,
   Row,
   Col,
   Table,
@@ -25,7 +26,9 @@ import {
   Tooltip,
   Pagination,
   Dialog,
-  MessageBox
+  MessageBox,
+  Tag,
+  Tree
 } from 'element-ui'
 
 // 导入弹框组件，挂载到vue上面
@@ -57,6 +60,7 @@ Vue.use(BreadcrumbItem)
 Vue.use(Card)
 // 搜索框
 Vue.use(Select)
+Vue.use(Option)
 // 栅格化
 Vue.use(Row)
 Vue.use(Col)
@@ -71,3 +75,6 @@ Vue.use(Tooltip)
 Vue.use(Pagination)
 // 对话框
 Vue.use(Dialog)
+
+Vue.use(Tag)
+Vue.use(Tree)

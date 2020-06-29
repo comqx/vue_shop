@@ -1,9 +1,9 @@
 <template>
   <div>
 <!--面包屑导航区-->
-    <el-breadcrumb separator="/">
-      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
-      <el-breadcrumb-item><a href="/home">用户管理</a></el-breadcrumb-item>
+    <el-breadcrumb separator-class="el-icon-arrow-right">
+      <el-breadcrumb-item :to="{path:'/home'}">首页</el-breadcrumb-item>
+      <el-breadcrumb-item>用户管理</el-breadcrumb-item>
       <el-breadcrumb-item>用户列表</el-breadcrumb-item>
     </el-breadcrumb>
 <!--    卡片视图-->
@@ -34,12 +34,15 @@
         </el-col>
       </el-row>
 <!--      表格-->
+<!--      border 表格加边框线-->
+<!--      stripe 表格隔行变色-->
+<!--      default-sort 默认排序-->
       <el-table
         :data="userList"
         style="width: 100%"
         stripe
         border
-        :default-sort = "{prop: 'date', order: 'descending'}"
+        :default-sort = "{prop: 'username', order: 'descending'}"
       >
         <el-table-column type="index"       label="序号" width="50"></el-table-column>
         <el-table-column prop="username"    label="用户名" width="180"></el-table-column>
@@ -62,6 +65,8 @@
         </el-table-column>
 <!--          作用域插槽-->
         <el-table-column label="操作"  width="180">
+<!--           showEditDialog 编辑按钮 触发的监听事件 -->
+<!--           removeUserById 删除按钮 触发的监听事件 -->
             <template slot-scope="scope">
 <!--                修改按钮-->
                 <el-button type="primary" icon="el-icon-edit" size="mini" @click="showEditDialog(scope.row.id)"></el-button>
@@ -70,17 +75,17 @@
 <!--                分配角色按钮-->
 <!--                在按钮上面弹出详细信息-->
                 <el-tooltip content="分配角色" placement="top" :enterable="false">
-                    <el-button type="warning" icon="el-icon-share" size="mini"></el-button>
+                    <el-button type="warning" icon="el-icon-share" size="mini"  @click = "setRole(scope.row)"></el-button>
                 </el-tooltip>
             </template>
         </el-table-column>
       </el-table>
-<!--        分页区-->
+<!--        分页-->
 <!--        @handleSizeChange 监听pagesize 改变的函数   事件处理函数-->
 <!--        handleCurrentChange 监听pagenum 改变的函数-->
 <!--         :current-page 动态绑定pagenum-->
 <!--        layout 显示页码布局的-->
-        <el-pagination
+     <el-pagination
                 @size-change="handleSizeChange"
                 @current-change="handleCurrentChange"
                 :current-page="queryInfo.pagenum"
@@ -89,11 +94,12 @@
                 layout="total, sizes, prev, pager, next, jumper"
                 :total="total">
         </el-pagination>
+
     </el-card>
 <!--      添加用户的对话框-->
 <!--      title 标题-->
 <!--       :visible.sync 对话框的显示与隐藏-->
-<!--      :before-close= 在对话框关闭之前会处理的函数-->
+<!--     addDialogClosed  监听 添加用户对话框 的关闭事件,清空对话框函数-->
       <el-dialog
               title="添加用户"
               :visible.sync="addDialogVisible"
@@ -124,6 +130,7 @@
          </span>
       </el-dialog>
 <!--      修改用户的对话框-->
+<!--      editDialogClosed 监听 修改用户对话框 的关闭事件,清空对话框函数-->
       <el-dialog
               title="修改用户"
               :visible.sync="editDialogVisible"
@@ -147,6 +154,34 @@
           <span slot="footer" class="dialog-footer">
     <el-button @click="editDialogVisible = false">取 消</el-button>
     <el-button type="primary" @click="editUserInfo">确 定</el-button>
+  </span>
+      </el-dialog>
+      <!--      分配角色的对话框-->
+      <!--      editDialogClosed 监听 修改用户对话框 的关闭事件,清空对话框函数-->
+      <el-dialog
+              title="分配角色"
+              :visible.sync="setDialogVisible"
+              width="50%"
+              @close="setDialogClosed">
+          <!--           内容主体区-->
+            <div>
+                <p>当前用户名: {{ userInfo.username}}</p>
+                <p>当前角色: {{userInfo.role_name}}</p>
+<!--              v-model  选中的值 -->
+                <p>选中对应的角色:
+                    <el-select v-model="selectRoleId" placeholder="请选择">
+                        <el-option
+                                v-for="item in roleList"
+                                :key="item.id"
+                                :label="item.roleName"
+                                :value="item.id">
+                        </el-option>
+                    </el-select>
+                </p>
+            </div>
+          <span slot="footer" class="dialog-footer">
+    <el-button @click="setDialogVisible = false">取 消</el-button>
+    <el-button type="primary" @click="saveRoleInfo">确 定</el-button>
   </span>
       </el-dialog>
   </div>
@@ -252,7 +287,15 @@ export default {
       // 修改用户 的对话框
       editDialogVisible: false,
       // 查询到的用户对象信息
-      editForm: {}
+      editForm: {},
+      // 分配角色 的对话框
+      setDialogVisible: false,
+      // 需要被分配角色的用户
+      userInfo: {},
+      // 所有角色的数据
+      roleList: {},
+      // 选中的roleid
+      selectRoleId: ''
     }
   },
   // 生命周期函数，调用对应的函数
@@ -261,13 +304,16 @@ export default {
   },
   // 事件处理函数
   methods: {
-    // 定义函数
+    // 定义函数 获取用户list
     async getUserList () {
-      // 携带参数 发起get请求，获取返回数据
+      // 1. 携带请求参数 发起get请求，获取返回数据
       const { data: res } = await this.$http.get('users', {
         params: this.queryInfo
       })
-      if (res.meta.status !== 200) return this.$message.error('获取用户列表失败')
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取用户列表失败')
+      }
+      // 2. 赋值给userList total
       this.userList = res.data.users
       this.total = res.data.total
     },
@@ -282,11 +328,12 @@ export default {
       this.getUserList()
     },
     // 监听 switch 开关状态的改变，向后台发送put请求
-    async userStateChanged (userinfo) {
+    async userStateChanged (userInfo) {
       // ` `表示模板渲染
-      const { data: res } = await this.$http.put(`users/${userinfo.id}/state/${userinfo.mg_state}`)
+      const { data: res } = await this.$http.put(`users/${userInfo.id}/state/${userInfo.mg_state}`)
       if (res.meta.status !== 200) {
-        userinfo.mg_state = !userinfo.mg_state
+        // 如果没有修改成功，mg_state取反。还原状态
+        userInfo.mg_state = !userInfo.mg_state
         return this.$message.error('更新用户状态失败')
       }
       this.$message.success('更新用户状态成功')
@@ -297,18 +344,18 @@ export default {
     },
     // 点击按钮，添加新用户
     addUserInfo () {
-      // 表单数据预验证
+      // 1. 表单数据预验证
       this.$refs.addFormRef.validate(async valid => {
         if (!valid) return
-        // 可以发起添加用户的网络请求
+        // 2. 可以发起添加用户的网络请求
         const { data: res } = await this.$http.post('users', this.addForm)
         console.log(res)
         if (res.meta.status !== 201) {
           return this.$message.error(res.meta.msg)
         }
-        // 隐藏对话框
+        // 3. 隐藏对话框
         this.addDialogVisible = false
-        // 重新获取用户列表的数据
+        // 4. 重新获取用户列表的数据
         this.getUserList()
         this.$message.success('添加用户成功')
       })
@@ -316,7 +363,6 @@ export default {
     // 展示编辑用户的对话框
     async showEditDialog (id) {
       const { data: res } = await this.$http.get('users/' + id)
-      console.log(res)
       if (res.meta.status !== 200) return this.$message.error('查询用户信息失败')
       this.editForm = res.data
       // 打开对话框字段
@@ -326,24 +372,24 @@ export default {
     editDialogClosed () {
       this.$refs.editFormRef.resetFields()
     },
+    // 编辑用户信息
     editUserInfo () {
       this.$refs.editFormRef.validate(async valid => {
-        // 如果校验不通过，直接返回
+        // 1. 如果校验不通过，直接返回
         if (!valid) return
-        // 可以发起添加用户的网络请求
+        // 2. 指定参数，发起修改操作的网络请求
         const { data: res } = await this.$http.put(
           'users/' + this.editForm.id,
           {
             email: this.editForm.email,
             mobile: this.editForm.mobile
           })
-        console.log(res)
         if (res.meta.status !== 200) {
           return this.$message.error('更新用户失败！')
         }
-        // 隐藏对话框
+        // 3. 隐藏对话框
         this.editDialogVisible = false
-        // 刷新数据列表
+        // 4. 刷新数据列表
         this.getUserList()
         this.$message.success('修改用户成功！')
       })
@@ -366,13 +412,42 @@ export default {
       const { data: res } = await this.$http.delete(
         'users/' + id
       )
-      // console.log(res)
       if (res.meta.status !== 200) {
         return this.$message.error('删除用户失败!')
       }
       // 4. 调用用户数据list接口
       this.getUserList()
       this.$message.success('删除用户成功!')
+    },
+    // 角色弹出框关闭数据清理事件
+    setDialogClosed () {
+      this.selectRoleId = ''
+      this.userInfo = {}
+    },
+    // 展示分配角色的对话框
+    async setRole (userInfo) {
+      this.userInfo = userInfo
+      // 在打开对话框之前，进行请求获取角色list
+      const { data: res } = await this.$http.get('roles')
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取角色失败')
+      }
+      this.roleList = res.data
+      this.setDialogVisible = true
+    },
+    async saveRoleInfo () {
+      if (!this.selectRoleId) {
+        return this.$message.error('没有选中角色')
+      }
+      const { data: res } = await this.$http.put(`users/${this.userInfo.id}/role`,
+        { rid: this.selectRoleId }
+      )
+      if (res.meta.status !== 200) {
+        return this.$message.error('修改角色失败')
+      }
+      this.$message.success('修改角色成功')
+      this.getUserList()
+      this.setDialogVisible = false
     }
   }
 }

@@ -71,7 +71,9 @@ export default {
   data () {
     return {
       // 左侧菜单数据
-      menuList: [],
+      menuList: [
+
+      ],
       // 字体对象
       iconsObj: {
         125: 'iconfont icon-user',
@@ -94,6 +96,7 @@ export default {
   methods: {
     // 返回首页
     returnHome () {
+      // 前端路由
       this.$router.push('/welcome')
     },
     // 退出按钮，返回到登录页
@@ -103,7 +106,7 @@ export default {
     },
     // 获取所有的菜单
     async getMenuList () {
-      const { data: res } = await this.$http.get('menus')
+      const { data: res } = await this.$http.get('/menus')
       console.log(res)
       if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
       this.menuList = res.data
